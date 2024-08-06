@@ -2171,15 +2171,16 @@ func (s *EtcdServer) snapshot(snapi uint64, confState raftpb.ConfState) {
 func (s *EtcdServer) compactRaftLog(appliedi uint64) {
 	lg := s.Logger()
 
+	//  only compact raft log once every N applies
+	if appliedi%s.Cfg.CompactRaftLogEveryNApplies != 0 {
+		return
+	}
+
 	// keep some in memory log entries for slow followers
 	if appliedi <= s.Cfg.SnapshotCatchUpEntries {
 		return
 	}
 	compacti := appliedi - s.Cfg.SnapshotCatchUpEntries
-	//  only compact raft log once every N applies
-	if compacti%s.Cfg.CompactRaftLogEveryNApplies != 0 {
-		return
-	}
 
 	// When sending a snapshot, etcd will pause compaction.
 	// After receives a snapshot, the slow follower needs to get all the entries right after
